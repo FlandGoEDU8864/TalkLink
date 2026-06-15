@@ -60,7 +60,7 @@ def connect_server():
     except Exception as e:
         safe_append(f"连接服务器失败: {e}")
 
-def send_message():
+def send_message(event=None):
     global connected
     message = input_text.get()
     if message:
@@ -90,6 +90,7 @@ def append_message(text):
 
 window_root.resizable(False, False)
 input_text = Entry(window_root, bd=3, width=35)
+input_text.bind("<Return>", send_message)
 input_text.place(x=100, y=100)
 Text_message = Label(text="消息聊天栏")
 Text_message.place(x=100, y=50)
