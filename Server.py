@@ -9,7 +9,7 @@ lock = threading.Lock()
 HOST = '0.0.0.0'
 PORT = 5000
 ADMIN_USERNAME = "Fland"
-ADMIN_PASSWORD = " **请将此处修改为自己的管理员密码** "
+ADMIN_PASSWORD = "hch551212."
 
 def broadcast(message, exclude_sock=None):
     with lock:
@@ -46,48 +46,28 @@ def handle_client(conn, addr):
             conn.close()
             return
 
+    is_admin = False
     if nickname == ADMIN_USERNAME:
-        with lock:
-            pending_auth.add(conn)
         send_to_sock(conn, "请输入特殊用户的账户密码")
         try:
-            while True:
-                data = conn.recv(4096)
-                if not data:
-                    break
-                password = data.decode('utf-8').strip()
-                if password == ADMIN_PASSWORD:
-                    with lock:
-                        pending_auth.discard(conn)
-                        nicknames.add(nickname)
-                        clients[conn] = {"nickname": nickname, "is_admin": True}
-                    send_to_sock(conn, "验证通过，欢迎管理员 " + nickname)
-                    join_msg = f"*** {nickname} 加入了聊天室 ***"
-                    broadcast(join_msg, exclude_sock=conn)
-                    break
-                else:
-                    send_to_sock(conn, "密码错误，连接已关闭")
-                    conn.close()
-                    return
-            if not conn._closed:
-                pass
-        except:
-            pass
-        finally:
-            with lock:
-                pending_auth.discard(conn)
-                if conn in clients:
-                    del clients[conn]
-                nicknames.discard(nickname)
-            try:
+            data = conn.recv(4096)
+            if not data:
                 conn.close()
-            except:
-                pass
+                return
+            password = data.decode('utf-8').strip()
+            if password != ADMIN_PASSWORD:
+                send_to_sock(conn, "密码错误，连接已关闭")
+                conn.close()
+                return
+            is_admin = True
+            send_to_sock(conn, "验证通过，欢迎管理员 " + nickname)
+        except:
+            conn.close()
             return
 
     with lock:
-        clients[conn] = {"nickname": nickname, "is_admin": False}
         nicknames.add(nickname)
+        clients[conn] = {"nickname": nickname, "is_admin": is_admin}
 
     print(f"客户端已连接: {nickname} @ {addr}")
     welcome_msg = f"欢迎 {nickname} 加入 Fland 的聊天室\n可用命令：\n/version - 查看版本\n/list - 查看在线人数与用户名"
@@ -160,7 +140,6 @@ def handle_client(conn, addr):
                 nicknames.discard(info["nickname"])
             else:
                 nicknames.discard(nickname)
-            pending_auth.discard(conn)
         try:
             conn.close()
         except:
